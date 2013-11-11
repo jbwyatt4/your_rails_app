@@ -42,7 +42,7 @@ task :deploy => :environment do
     invoke :'git:clone'
     # Overrides the database file every time it's deployed
     invoke :'deploy:link_shared_paths'
-    #queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/config/database.yml"]
+    queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/config/database.yml"]
     invoke :'bundle:install'
     invoke :'rails:db_migrate'
     #invoke :'rails:assets_precompile'
