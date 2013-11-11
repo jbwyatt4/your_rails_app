@@ -19,7 +19,9 @@ test:
   timeout: 5000
 
 production:
-  adapter: sqlite3
-  database: current/db/production.sqlite3
+  adapter: postgresql
+  encoding: unicode
+  database: <%= ENV['YOUR_RAILS_DB_NAME'] %>
   pool: 5
-  timeout: 5000
+  username: <%= ENV['YOUR_ROLE_NAME'] %>
+  password: <%= ENV['YOUR_ROLE_PASSWORD'] %>
