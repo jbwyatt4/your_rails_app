@@ -8,7 +8,7 @@ set :scm_username, "jbwyatt4"
 # set :scm, :git # You can set :scm explicitly or Capistrano will make an intelligent guess based on known version control directory names
 # Or: `accurev`, `bzr`, `cvs`, `darcs`, `git`, `mercurial`, `perforce`, `subversion` or `none`
 
-set :single_server, "33.33.13.39"
+set :single_server = "33.33.13.39"
 
 role :web, "${:single_server}"                          # Your HTTP server, Apache/etc
 role :app, "${:single_server}"                          # This may be the same as your `Web` server
