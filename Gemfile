@@ -9,14 +9,15 @@ group :development, :test do
   gem 'sqlite3'
 end
 group :production do
-#  gem 'pg'
+  gem 'pg'
 end
 
-#gem 'mina'
+gem 'mina'
 gem 'figaro'
 #gem 'capistrano', '~> 3.0.1'
-gem 'capistrano', '~> 2.15.5'
-gem 'capistrano-ext'
+#gem 'rvm1-capistrano3', require: false
+#gem 'capistrano', '~> 2.15.5'
+#gem 'rvm-capistrano'
 
 # Gems used only for assets and not required
 # in production environments by default.
