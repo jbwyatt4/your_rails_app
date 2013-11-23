@@ -21,6 +21,7 @@ task :setup => :environment do
   queue! %[mkdir -p "#{deploy_to}/shared/config"]
   queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config"]
   
+  queue! %[touch "#{deploy_to}/shared/config/database.yml"]
 end
 
 task :environment do
@@ -41,13 +42,14 @@ task :deploy => :environment do
     # Overrides the database file every time it's deployed
     queue! %[chmod g+rx,u+rwx "#{deploy_to}"]
     queue! %[chmod g+rx,u+rwx "#{deploy_to}/current/config/database.yml"] # Mina claims it can not find the database file w/o this.
-    queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/database.yml"]
+    queue! %[chmod g+rx,u+rwx "#{deploy_to}/current/config/application.yml"]
+    queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/config/database.yml"]
     queue! %[cp "#{deploy_to}/application.yml" "#{deploy_to}/current/config/application.yml" ]
     invoke :'deploy:link_shared_paths'    
-    queue! %[cd "#{deploy_to}/current/"; bundle install] # Needed to change the Gemfile lock if you put it in your git tree.
+    #queue! %[cd "#{deploy_to}/current/"; bundle install] # Needed to change the Gemfile lock if you put it in your git tree.
     invoke :'bundle:install'
     invoke :'rails:db_migrate'
-    invoke :'rails:assets_precompile'
+    #invoke :'rails:assets_precompile'
 
     # These are instructions to start the app after it's been prepared.
     #to :launch do

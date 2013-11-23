@@ -44,7 +44,7 @@ task :deploy => :environment do
     queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/database.yml"]
     queue! %[cp "#{deploy_to}/application.yml" "#{deploy_to}/current/config/application.yml" ]
     invoke :'deploy:link_shared_paths'    
-    queue! %[cd "#{deploy_to}/current/"; bundle install] # Needed to change the gemfile
+    queue! %[cd "#{deploy_to}/current/"; bundle install] # Needed to change the Gemfile lock if you put it in your git tree.
     invoke :'bundle:install'
     invoke :'rails:db_migrate'
     invoke :'rails:assets_precompile'
