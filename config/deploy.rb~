@@ -1,44 +1,67 @@
-set :application, 'your_rails_app'
-set :repo_url, 'git://github.com/jbwyatt4/your_rails_app.git'
+require 'mina/bundler'
+require 'mina/rails'
+require 'mina/git'
+# require 'mina/rbenv'  # for rbenv support. (http://rbenv.org)
+require 'mina/rvm'    # for rvm support. (http://rvm.io)
 
-# ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }
-
-set :default, 'staging'
-
+set :domain, '33.33.13.39'
+set :user, 'user'
 set :deploy_to, '/var/www/your_rails_app'
-set :scm, :git
+set :repository, 'http://github.com/jbwyatt4/your_rails_app.git'
+set :rvm_path, '/etc/profile.d/rvm.sh'
+set :rvm_gemset, 'ruby-1.9.3-p448@default'
+set :shared_paths, ['config/database.yml', 'log']
+set :term_mode, nil # needed to solve a login problem
 
-# set :format, :pretty
-# set :log_level, :debug
- set :pty, true
+task :setup => :environment do
+  # create shared folders and set permissions
+  queue! %[mkdir -p "#{deploy_to}/shared/log"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/log"]
 
-#set :linked_files, %w{config/database.yml}
-#set :linked_files, %w{config/database.yml config/application.yml}
-# set :linked_dirs, %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
+  queue! %[mkdir -p "#{deploy_to}/shared/config"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config"]
+  
+end
 
-#set :default_env, { path: "/opt/ruby/bin:$PATH" }
-set :keep_releases, 5
+task :environment do
+  invoke :"rvm:use[#{rvm_gemset}]"
+end
 
-namespace :deploy do
+task :restart do
+  # How to restart Passenger
+  queue 'sudo touch /tmp/restart'
+end
 
-  desc 'Restart application'
-  task :restart do
-    on roles(:app), in: :sequence, wait: 5 do
-      # Your restart mechanism here, for example:
-      # execute :touch, release_path.join('tmp/restart.txt')
-      execute "sudo touch", release_path.join('/tmp/restart.txt')
-    end
+# The => notation means 'environment' gets run before the deploy task.
+task :deploy => :environment do
+  deploy do
+    # Put things that prepare the empty release folder here.
+    # Commands queued here will be ran on a new release directory.
+    invoke :'git:clone'
+    # Overrides the database file every time it's deployed
+    queue! %[chmod g+rx,u+rwx "#{deploy_to}"]
+    queue! %[chmod g+rx,u+rwx "#{deploy_to}/current/config/database.yml"] # Mina claims it can not find the database file w/o this.
+    queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/database.yml"]
+    queue! %[cp "#{deploy_to}/application.yml" "#{deploy_to}/current/config/application.yml" ]
+    invoke :'deploy:link_shared_paths'    
+    queue! %[cd "#{deploy_to}/current/"; bundle install] # Needed to change the gemfile
+    invoke :'bundle:install'
+    invoke :'rails:db_migrate'
+    invoke :'rails:assets_precompile'
+
+    # These are instructions to start the app after it's been prepared.
+    #to :launch do
+    #  queue 'touch tmp/restart.txt'
+    #end
+
+    # This optional block defines how a broken release should be cleaned up.
+    #to :clean do
+    #  queue 'log "failed deployment"'
+    #end
   end
+end
 
-  after :restart, :clear_cache do
-    on roles(:web), in: :groups, limit: 3, wait: 10 do
-      # Here we can do anything such as:
-      # within release_path do
-      #   execute :rake, 'cache:clear'
-      # end
-    end
-  end
-
-  after :finishing, 'deploy:cleanup'
-
+desc "Shows logs."
+task :logs do
+  queue %[cd #{deploy_to!} && tail -f logs/error.log]
 end
