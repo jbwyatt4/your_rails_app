@@ -4,26 +4,62 @@ require 'mina/git'
 # require 'mina/rbenv'  # for rbenv support. (http://rbenv.org)
 require 'mina/rvm'    # for rvm support. (http://rvm.io)
 
-set :domain, '33.33.13.39'
+set :domain, '33.33.13.40'
 set :user, 'user'
-set :deploy_to, '/var/www/your_rails_app'
+set :webroot, '/var/www'
+set :app_name, 'your_rails_app'
+set :deploy_to, "#{webroot}/#{app_name}"
 set :repository, 'http://github.com/jbwyatt4/your_rails_app.git'
 set :rvm_path, '/etc/profile.d/rvm.sh'
 set :rvm_gemset, 'ruby-1.9.3-p448@default'
-set :shared_paths, ['config/database.yml', 'log']
+set :shared_paths, ['log', 'config/application.yml']
 set :term_mode, nil # needed to solve a login problem
 
+# If your using the rails bluebook recipe with Mina
+# for the first time, use this task with:
+# mina cold_start --verbose
+tast :cold_start do
+  # You call other Mina (Rake) tasks with invoke.
+  invoke :'setup'
+  invoke :'deploy'
+  invoke :'hard_restart'
+  queue! %[echo "Mina has deployed #{app_name}!"]
+end
+
+# Setup a shared folder so logs and the application.yml
+# can be shared between different versions of the app.
+# If you attempt to copy the application.yml w/o a shared
+# link you will get permission errors.
 task :setup => :environment do
   # create shared folders and set permissions
+  # The ! tells Mina to print out the terminal output.
   queue! %[mkdir -p "#{deploy_to}/shared/log"]
   queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/log"]
 
   queue! %[mkdir -p "#{deploy_to}/shared/config"]
   queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config"]
-  
-  queue! %[touch "#{deploy_to}/shared/config/database.yml"]
+
+  queue! %[touch "#{deploy_to}/shared/config/application.yml"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config/application.yml"]
 end
 
+# Wipe out the deploy
+task :wipe do
+  queue! %[rm -rf "#{deploy_to}"]
+end
+
+# Sometimes a deploy can be corrupted when
+# your testing it out.
+# Use this command to restart fresh.
+task :rebuild do
+  invoke :'wipe'
+  invoke :'setup'
+  invoke :'deploy'
+  invoke :'hard_restart'
+  queue! %[echo "Mina rebuilt #{app_name}!"]
+end
+
+# Sets our gem environment
 task :environment do
   invoke :"rvm:use[#{rvm_gemset}]"
 end
@@ -33,33 +69,27 @@ task :restart do
   queue 'sudo touch /tmp/restart'
 end
 
+# When Nginx and Passenger are stubborn
+task :hard_restart do
+  queue 'sudo reboot'
+end
+
 # The => notation means 'environment' gets run before the deploy task.
 task :deploy => :environment do
   deploy do
     # Put things that prepare the empty release folder here.
     # Commands queued here will be ran on a new release directory.
     invoke :'git:clone'
-    # Overrides the database file every time it's deployed
-    queue! %[chmod g+rx,u+rwx "#{deploy_to}"]
-    queue! %[chmod g+rx,u+rwx "#{deploy_to}/current/config/database.yml"] # Mina claims it can not find the database file w/o this.
-    queue! %[chmod g+rx,u+rwx "#{deploy_to}/current/config/application.yml"]
-    queue! %[cp "#{deploy_to}/current/config/database.yml" "#{deploy_to}/shared/config/database.yml"]
-    queue! %[cp "#{deploy_to}/application.yml" "#{deploy_to}/current/config/application.yml" ]
-    invoke :'deploy:link_shared_paths'    
-    #queue! %[cd "#{deploy_to}/current/"; bundle install] # Needed to change the Gemfile lock if you put it in your git tree.
+
+    # We linked the shared folder based on the shared_paths variable.
+    invoke :'deploy:link_shared_paths'
+    # Copy the application.yml file
+    queue! %[cp "#{webroot}/application.yml" "#{deploy_to}/shared/config/application.yml"]
+    queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config/application.yml"]
+
     invoke :'bundle:install'
     invoke :'rails:db_migrate'
-    #invoke :'rails:assets_precompile'
-
-    # These are instructions to start the app after it's been prepared.
-    #to :launch do
-    #  queue 'touch tmp/restart.txt'
-    #end
-
-    # This optional block defines how a broken release should be cleaned up.
-    #to :clean do
-    #  queue 'log "failed deployment"'
-    #end
+    invoke :'rails:assets_precompile'
   end
 end
 
