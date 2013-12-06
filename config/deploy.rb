@@ -4,7 +4,7 @@ require 'mina/git'
 # require 'mina/rbenv'  # for rbenv support. (http://rbenv.org)
 require 'mina/rvm'    # for rvm support. (http://rvm.io)
 
-set :domain, '33.33.13.40'
+set :domain, '33.33.13.39'
 set :user, 'user'
 set :webroot, '/var/www'
 set :app_name, 'your_rails_app'
@@ -18,7 +18,7 @@ set :term_mode, nil # needed to solve a login problem
 # If your using the rails bluebook recipe with Mina
 # for the first time, use this task with:
 # mina cold_start --verbose
-tast :cold_start do
+task :cold_start do
   # You call other Mina (Rake) tasks with invoke.
   invoke :'setup'
   invoke :'deploy'
