@@ -11,7 +11,7 @@ set :app_name, 'your_rails_app'
 set :deploy_to, "#{webroot}/#{app_name}"
 set :repository, 'http://github.com/jbwyatt4/your_rails_app.git'
 set :rvm_path, '/etc/profile.d/rvm.sh'
-set :rvm_gemset, 'ruby-1.9.3-p448@default'
+set :rvm_gemset, 'ruby-1.9.3-p484@default'
 set :shared_paths, ['log', 'config/application.yml']
 set :term_mode, nil # needed to solve a login problem
 
